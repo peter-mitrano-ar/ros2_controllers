@@ -471,7 +471,7 @@ void JointTrajectoryController::update_state_from_command_interfaces(JointTrajec
   {
     for (size_t index = 0; index < dof_; ++index)
     {
-      auto &joint_interface_value = joint_interface[index].get();
+      auto & joint_interface_value = joint_interface[index].get();
       if (std::isnan(joint_interface_value.get_value()))
       {
         RCLCPP_DEBUG(
@@ -506,7 +506,6 @@ void JointTrajectoryController::update_state_from_command_interfaces(JointTrajec
     assign_point_from_interface(state.effort, joint_command_interface_[3]);
   }
 }
-
 
 bool JointTrajectoryController::read_commands_from_command_interfaces(
   JointTrajectoryPoint & commands)
@@ -980,7 +979,8 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
   read_state_from_state_interfaces(state_current_);
   read_state_from_state_interfaces(last_commanded_state_);
 
-  if (params_.set_last_command_interface_value_as_state_on_activation) {
+  if (params_.set_last_command_interface_value_as_state_on_activation)
+  {
     // Handle restart of controller by reading from commands if those are not NaN (a controller was
     // running already)
     // The function checks if all joints have values on the command interfaces.
