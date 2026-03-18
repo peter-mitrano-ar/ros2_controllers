@@ -697,7 +697,6 @@ void JointTrajectoryController::update_state_from_command_interfaces(JointTrajec
   }
 }
 
-
 bool JointTrajectoryController::read_commands_from_command_interfaces(
   JointTrajectoryPoint & commands)
 {
@@ -1233,7 +1232,8 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
   read_state_from_state_interfaces(state_current_);
   read_state_from_state_interfaces(last_commanded_state_);
 
-  if (params_.set_last_command_interface_value_as_state_on_activation && dof_ == num_cmd_joints_) {
+  if (params_.set_last_command_interface_value_as_state_on_activation && dof_ == num_cmd_joints_)
+  {
     // Handle restart of controller by reading from commands if those are not NaN (a controller was
     // running already)
     // Thue function checks if all joints have values on the command interfaces.
