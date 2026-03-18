@@ -255,7 +255,8 @@ protected:
   void read_state_from_state_interfaces(JointTrajectoryPoint & state);
 
   /** Assign values from the command interfaces as state.
-   * state values (e.g. velocity, acceleration, or effort) which do not have command interfaces will NOT be updated.
+   * state values (e.g. velocity, acceleration, or effort) which do not have command interfaces will
+   * NOT be updated.
    * @param[out] state to be filled with values from command interfaces.
    */
   void update_state_from_command_interfaces(JointTrajectoryPoint & state);
