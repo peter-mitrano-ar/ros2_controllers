@@ -464,74 +464,49 @@ void JointTrajectoryController::read_state_from_state_interfaces(JointTrajectory
   }
 }
 
-bool JointTrajectoryController::read_state_from_command_interfaces(JointTrajectoryPoint & state)
+void JointTrajectoryController::update_state_from_command_interfaces(JointTrajectoryPoint & state)
 {
-  bool has_values = true;
-
   auto assign_point_from_interface =
     [&](std::vector<double> & trajectory_point_interface, const auto & joint_interface)
   {
     for (size_t index = 0; index < dof_; ++index)
     {
-      trajectory_point_interface[index] = joint_interface[index].get().get_value();
+      auto &joint_interface_value = joint_interface[index].get();
+      if (std::isnan(joint_interface_value.get_value()))
+      {
+        RCLCPP_DEBUG(
+          get_node()->get_logger(),
+          "Value of joint interface for joint at index %zu is NaN, ignoring", index);
+      }
+      else
+      {
+        trajectory_point_interface[index] = joint_interface_value.get_value();
+      }
     }
   };
 
-  auto interface_has_values = [](const auto & joint_interface)
-  {
-    return std::find_if(
-             joint_interface.begin(), joint_interface.end(), [](const auto & interface)
-             { return std::isnan(interface.get().get_value()); }) == joint_interface.end();
-  };
-
-  // Assign values from the command interfaces as state. Therefore needs check for both.
-  // Position state interface has to exist always
-  if (has_position_command_interface_ && interface_has_values(joint_command_interface_[0]))
+  // Assign values from the command interfaces as state
+  if (has_position_command_interface_)
   {
     assign_point_from_interface(state.positions, joint_command_interface_[0]);
   }
-  else
+
+  if (has_velocity_command_interface_)
   {
-    state.positions.clear();
-    has_values = false;
-  }
-  // velocity and acceleration states are optional
-  if (has_velocity_state_interface_)
-  {
-    if (has_velocity_command_interface_ && interface_has_values(joint_command_interface_[1]))
-    {
-      assign_point_from_interface(state.velocities, joint_command_interface_[1]);
-    }
-    else
-    {
-      state.velocities.clear();
-      has_values = false;
-    }
-  }
-  else
-  {
-    state.velocities.clear();
-  }
-  // Acceleration is used only in combination with velocity
-  if (has_acceleration_state_interface_)
-  {
-    if (has_acceleration_command_interface_ && interface_has_values(joint_command_interface_[2]))
-    {
-      assign_point_from_interface(state.accelerations, joint_command_interface_[2]);
-    }
-    else
-    {
-      state.accelerations.clear();
-      has_values = false;
-    }
-  }
-  else
-  {
-    state.accelerations.clear();
+    assign_point_from_interface(state.velocities, joint_command_interface_[1]);
   }
 
-  return has_values;
+  if (has_acceleration_command_interface_)
+  {
+    assign_point_from_interface(state.accelerations, joint_command_interface_[2]);
+  }
+
+  if (has_effort_command_interface_)
+  {
+    assign_point_from_interface(state.effort, joint_command_interface_[3]);
+  }
 }
+
 
 bool JointTrajectoryController::read_commands_from_command_interfaces(
   JointTrajectoryPoint & commands)
@@ -1001,22 +976,17 @@ controller_interface::CallbackReturn JointTrajectoryController::on_activate(
   subscriber_is_active_ = true;
   last_state_publish_time_ = get_node()->now();
 
-  // Handle restart of controller by reading from commands if those are not NaN (a controller was
-  // running already)
-  trajectory_msgs::msg::JointTrajectoryPoint state;
-  resize_joint_trajectory_point(state, dof_);
-  if (
-    params_.set_last_command_interface_value_as_state_on_activation &&
-    read_state_from_command_interfaces(state))
-  {
-    state_current_ = state;
-    last_commanded_state_ = state;
-  }
-  else
-  {
-    // Initialize current state storage from hardware
-    read_state_from_state_interfaces(state_current_);
-    read_state_from_state_interfaces(last_commanded_state_);
+  // Initialize current state storage from hardware state interfaces
+  read_state_from_state_interfaces(state_current_);
+  read_state_from_state_interfaces(last_commanded_state_);
+
+  if (params_.set_last_command_interface_value_as_state_on_activation) {
+    // Handle restart of controller by reading from commands if those are not NaN (a controller was
+    // running already)
+    // The function checks if all joints have values on the command interfaces.
+    // otherwise it will not update them, leaving them based on the state interfaces.
+    update_state_from_command_interfaces(state_current_);
+    update_state_from_command_interfaces(last_commanded_state_);
   }
   // reset/zero out all of the PID's (The integral term is not retained and reset to zero)
   for (auto & pid : pids_)
