@@ -120,8 +120,12 @@ protected:
   // The interfaces are defined as the types in 'allowed_interface_types_' member.
   // For convenience, for each type the interfaces are ordered so that i-th position
   // matches i-th index in joint_names_
+
   template <typename T>
-  using InterfaceReferences = std::vector<std::vector<std::reference_wrapper<T>>>;
+  using InterfaceReference = std::vector<std::reference_wrapper<T>>;
+
+  template <typename T>
+  using InterfaceReferences = std::vector<InterfaceReference<T>>;
 
   InterfaceReferences<hardware_interface::LoanedCommandInterface> joint_command_interface_;
   InterfaceReferences<hardware_interface::LoanedStateInterface> joint_state_interface_;
@@ -277,6 +281,9 @@ private:
     trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size, double value = 0.0);
   void resize_joint_trajectory_point_command(
     trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size, double value = 0.0);
+  void assign_point_from_command_interface(
+    std::vector<double> & trajectory_point_interface,
+    const InterfaceReference<hardware_interface::LoanedCommandInterface> & joint_interface);
 
   /**
    * @brief Set scaling factor used for speed scaling trajectory execution
