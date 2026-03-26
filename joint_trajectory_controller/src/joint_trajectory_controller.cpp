@@ -673,24 +673,25 @@ void JointTrajectoryController::update_state_from_command_interfaces(JointTrajec
   }
 
   // velocity and acceleration states are optional
-  if (
-    has_velocity_state_interface_ && has_velocity_command_interface_ &&
-    interface_has_values(joint_command_interface_[1]))
+  if (has_velocity_command_interface_ && interface_has_values(joint_command_interface_[1]))
   {
+    if (!has_velocity_state_interface_) {
+      state.velocities.resize(dof_, std::numeric_limits<double>::quiet_NaN());
+    }
     assign_point_from_command_interface(state.velocities, joint_command_interface_[1]);
   }
 
-  if (
-    has_acceleration_state_interface_ && has_acceleration_command_interface_ &&
-    interface_has_values(joint_command_interface_[2]))
+  if (has_acceleration_command_interface_ && interface_has_values(joint_command_interface_[2]))
   {
+    if (!has_acceleration_state_interface_) {
+      state.accelerations.resize(dof_, std::numeric_limits<double>::quiet_NaN());
+    }
     assign_point_from_command_interface(state.accelerations, joint_command_interface_[2]);
   }
 
   if (has_effort_command_interface_ && interface_has_values(joint_command_interface_[3]))
   {
-    // TODO(anyone): there is no effort state interface, so can we be sure that state.effort is
-    // resized to the correct size?
+    state.effort.resize(dof_, std::numeric_limits<double>::quiet_NaN());
     assign_point_from_command_interface(state.effort, joint_command_interface_[3]);
   }
 }
