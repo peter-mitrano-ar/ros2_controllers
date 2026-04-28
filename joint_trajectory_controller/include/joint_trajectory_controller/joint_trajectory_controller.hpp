@@ -282,6 +282,10 @@ private:
     trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size);
   void resize_joint_trajectory_point_command(
     trajectory_msgs::msg::JointTrajectoryPoint & point, size_t size);
+  void assign_point_from_command_interface(
+    std::vector<double> & trajectory_point_interface,
+    const std::vector<std::reference_wrapper<hardware_interface::LoanedCommandInterface>> &
+      joint_interface);
 };
 
 }  // namespace joint_trajectory_controller

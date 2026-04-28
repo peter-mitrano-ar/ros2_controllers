@@ -39,6 +39,18 @@
 
 namespace joint_trajectory_controller
 {
+
+auto interface_has_values = [](const auto & joint_interface)
+{
+  return std::find_if(
+           joint_interface.begin(), joint_interface.end(),
+           [](const auto & interface)
+           {
+             auto interface_op = interface.get().get_optional();
+             return !interface_op.has_value() || std::isnan(interface_op.value());
+           }) == joint_interface.end();
+};
+
 JointTrajectoryController::JointTrajectoryController()
 : controller_interface::ControllerInterface(), dof_(0)
 {
@@ -466,44 +478,25 @@ void JointTrajectoryController::read_state_from_state_interfaces(JointTrajectory
 
 void JointTrajectoryController::update_state_from_command_interfaces(JointTrajectoryPoint & state)
 {
-  auto assign_point_from_interface =
-    [&](std::vector<double> & trajectory_point_interface, const auto & joint_interface)
-  {
-    for (size_t index = 0; index < dof_; ++index)
-    {
-      auto & joint_interface_value = joint_interface[index].get();
-      if (std::isnan(joint_interface_value.get_value()))
-      {
-        RCLCPP_DEBUG(
-          get_node()->get_logger(),
-          "Value of joint interface for joint at index %zu is NaN, ignoring", index);
-      }
-      else
-      {
-        trajectory_point_interface[index] = joint_interface_value.get_value();
-      }
-    }
-  };
-
   // Assign values from the command interfaces as state
   if (has_position_command_interface_)
   {
-    assign_point_from_interface(state.positions, joint_command_interface_[0]);
+    assign_point_from_command_interface(state.positions, joint_command_interface_[0]);
   }
 
   if (has_velocity_command_interface_)
   {
-    assign_point_from_interface(state.velocities, joint_command_interface_[1]);
+    assign_point_from_command_interface(state.velocities, joint_command_interface_[1]);
   }
 
   if (has_acceleration_command_interface_)
   {
-    assign_point_from_interface(state.accelerations, joint_command_interface_[2]);
+    assign_point_from_command_interface(state.accelerations, joint_command_interface_[2]);
   }
 
   if (has_effort_command_interface_)
   {
-    assign_point_from_interface(state.effort, joint_command_interface_[3]);
+    assign_point_from_command_interface(state.effort, joint_command_interface_[3]);
   }
 }
 
